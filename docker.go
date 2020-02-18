@@ -19,7 +19,7 @@ var docker, _ = client.NewEnvClient()
 // The return values of this function included the exported ports for the
 // started container, a function to stop the docker container, and an error
 // indicating the status of the call.
-func Run(image string, opts ...RunOption) (ports []string, stop func() error, err error) {
+func Run(image string, opts ...RunOption) (ports map[string]string, stop func() error, err error) {
 	cfg := &runCfg{
 		imagePrefix: "docker.io/library/",
 		out:         ioutil.Discard,
@@ -57,8 +57,13 @@ func Run(image string, opts ...RunOption) (ports []string, stop func() error, er
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to Run image; err: %w", err)
 	}
-	for port := range info.Config.ExposedPorts {
-		ports = append(ports, string(port))
+
+	ports = make(map[string]string)
+	for port, hostPort := range info.NetworkSettings.NetworkSettingsBase.Ports {
+		if len(hostPort) == 0 {
+			continue
+		}
+		ports[string(port)] = hostPort[0].HostPort
 	}
 	stop = func() error {
 		ctx := context.Background()

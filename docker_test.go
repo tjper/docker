@@ -10,19 +10,23 @@ func TestRun(t *testing.T) {
 	tests := []struct {
 		image string
 		err   error
+		port  string
 	}{
-		{image: "redis", err: nil},
+		{image: "redis", err: nil, port: "6379/tcp"},
 	}
 
 	for i, test := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			_, stop, err := Run(test.image)
+			ports, stop, err := Run(test.image)
+			defer stop()
+
 			if !errors.Is(err, test.err) {
 				t.Fatalf("unexpected err; expected: %s; actual: %s", test.err, err)
+				return
 			}
-			err = stop()
-			if !errors.Is(err, test.err) {
+			if _, ok := ports[test.port]; !ok {
 				t.Fatalf("unexpected err; expected: %s; actual: %s", test.err, err)
+				return
 			}
 		})
 	}
